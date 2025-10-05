@@ -7,9 +7,14 @@ output: github_document
 
 ```{r}
 library(p8105.datasets)
+library(readr)
 library(tidyverse)  
 library(scales)      
-library(knitr)     
+library(knitr)
+library(lubridate)
+library(janitor)
+library(patchwork)
+theme_set(theme_minimal(base_size = 14))
 data("instacart")
 ```
 
@@ -80,7 +85,62 @@ mean_hour |>
   kable()
 ```
 
-```{r}
 
+#Problem 2
+```{r}
+Zip_Codes = 
+  read_csv("zillow_data/Zip Codes.csv") |>
+  janitor::clean_names()
+
+Zip_zori = 
+  read_csv("zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") |>
+  janitor::clean_names()
+view(Zip_zori)
+```
+
+```{r}
+rent_df =
+  Zip_zori |>
+  select(region_name, starts_with("x")) |>   
+  rename(zip = region_name) |>
+  pivot_longer(
+    cols = starts_with("x"),
+    names_to = "month_raw",
+    values_to = "rent"
+  ) |>
+  mutate(
+    month = str_remove(month_raw, "^x"),
+    month = str_replace_all(month, "_", "-"),
+    month = ymd(month),
+    zip = as.character(zip),
+    rent = as.numeric(rent)
+  ) |>
+  select(zip, month, rent) |>
+  drop_na(rent)
+
+view(rent_df)
+```
+
+```{r}
+zip_df = 
+  Zip_Codes |> 
+  transmute(                      
+    zip = as.character(zip_code), 
+    borough = case_when(          
+      str_detect(county, "New York") ~ "Manhattan",
+      str_detect(county, "Kings") ~ "Brooklyn",
+      str_detect(county, "Queens") ~ "Queens",
+      str_detect(county, "Bronx") ~ "Bronx",
+      str_detect(county, "Richmond") ~ "Staten Island",
+      TRUE ~ "Other"
+    )
+  )
+
+```
+
+```{r}
+rent_tidy = 
+  left_join(rent_df, zip_df, by = "zip")
+view(rent_tidy)
 ```
 
