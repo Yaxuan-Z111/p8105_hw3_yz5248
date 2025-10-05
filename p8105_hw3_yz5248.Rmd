@@ -1,0 +1,86 @@
+---
+title: "p8105_hw3_yz5248"
+author: "yz5248"
+date: "2025-10-05"
+output: github_document
+---
+
+```{r}
+library(p8105.datasets)
+library(tidyverse)  
+library(scales)      
+library(knitr)     
+data("instacart")
+```
+
+#Problem 1
+```{r}
+n_aisles = 
+  instacart |>
+  distinct(aisle_id, aisle) |>
+  nrow()
+n_aisles   
+
+aisle_counts = 
+  instacart |>
+  count(aisle, sort = TRUE) |>
+  rename(n_orders = n)
+
+aisle_counts |>
+  slice_head(n = 20) |> 
+  knitr::kable()
+```
+
+```{r}
+aisle_counts |> 
+  filter(n_orders > 10000) |> 
+  mutate(aisle = fct_reorder(aisle, n_orders)) |> 
+  ggplot(aes(x = aisle, y = n_orders)) +
+  geom_col(fill = "blue") +
+  coord_flip() +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Aisles with more than 10,000 items ordered",
+    x = "Aisle",
+    y = "Number of items ordered"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
+```{r}
+target_aisles = c("baking ingredients", "dog food care", "packaged vegetables fruits")
+
+top3_items = 
+  instacart |> 
+  filter(aisle == target_aisles) |> 
+  count(aisle, product_name, sort = TRUE) |> 
+  group_by(aisle) |> 
+  slice_head(n = 3) |> 
+  ungroup()
+
+top3_items |> 
+  kable()
+```
+
+```{r}
+weekday_labels = c("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
+
+mean_hour = 
+  instacart |>
+  filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) |>
+  group_by(product_name, order_dow) |>
+  summarise(mean_hour = mean(order_hour_of_day), .groups = "drop") |>
+  mutate(weekday = factor(order_dow, levels = 0:6, labels = weekday_labels)) |>
+  select(product_name, weekday, mean_hour) |>
+  pivot_wider(names_from = weekday, values_from = mean_hour)
+
+mean_hour |>
+  mutate(across(where(is.numeric), ~round(., 1))) |>
+  kable()
+```
+
+```{r}
+
+```
+
