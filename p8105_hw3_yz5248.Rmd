@@ -140,7 +140,23 @@ zip_df =
 
 ```{r}
 rent_tidy = 
-  left_join(rent_df, zip_df, by = "zip")
-view(rent_tidy)
+  left_join(rent_df, zip_df, by = "zip") |>
+  rename(Year = month) |>
+  view()
 ```
 
+```{r}
+rent_summary =
+  rent_tidy |>
+  mutate(Year = year(Year)) |>    
+  group_by(borough, Year) |>
+  summarise(mean_rent = mean(rent, na.rm = TRUE)) |>
+  arrange(borough, Year) 
+
+rent_summary |>
+  knitr::kable(
+    caption = "Average Rental Price by Borough and Year (Zillow ZORI Data)",
+    digits = 0
+  ) 
+
+```
