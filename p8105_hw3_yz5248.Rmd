@@ -223,3 +223,14 @@ ggsave("results/nyc_rental_combined_plot.png",
        width = 12, height = 10, dpi = 300)
 ```
 
+
+#Problem 3
+```{r}
+nhanes_accel <- read_csv("nhanes_accel.csv") |> 
+  clean_names()
+
+nhanes_accel <- read_csv("nhanes_accel.csv") |> 
+  clean_names()
+
+```
+
