@@ -15,11 +15,13 @@ library(lubridate)
 library(janitor)
 library(patchwork)
 library(ggplot2)
+library(gt)
 theme_set(theme_minimal(base_size = 14))
 data("instacart")
 ```
 
-#Problem 1
+# Problem 1
+## number of aisles and the max term
 ```{r}
 n_aisles = 
   instacart |>
@@ -36,7 +38,10 @@ aisle_counts |>
   slice_head(n = 20) |> 
   knitr::kable()
 ```
+Here are totally 134 aisles.  
+From the table we find that fresh vegetables is the most terms.  
 
+### the plot showing the number of items ordered in each aisle
 ```{r}
 aisle_counts |> 
   filter(n_orders > 10000) |> 
@@ -54,6 +59,7 @@ aisle_counts |>
 
 ```
 
+## table showing the three most popular items
 ```{r}
 target_aisles = c("baking ingredients", "dog food care", "packaged vegetables fruits")
 
@@ -69,6 +75,7 @@ top3_items |>
   kable()
 ```
 
+## table showing the mean hour of the day
 ```{r}
 weekday_labels = c("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
 
@@ -91,15 +98,45 @@ mean_hour |>
 ```{r}
 Zip_Codes = 
   read_csv("zillow_data/Zip Codes.csv") |>
-  janitor::clean_names()
+  janitor::clean_names()|>
+  view()
 
 Zip_zori = 
   read_csv("zillow_data/Zip_zori_uc_sfrcondomfr_sm_month_NYC.csv") |>
-  janitor::clean_names()
-view(Zip_zori)
-```
+  janitor::clean_names()|>
+  view()
 
+zip_counts <- Zip_Codes |>
+  group_by(zip_code) |>
+  summarise(n_obs = n()) |>
+  arrange(desc(n_obs)) |>
+  summarise(
+    full_coverage = sum(n_obs == 116),
+    sparse_coverage = sum(n_obs < 10)
+  )
+zip_counts
+```
+From the table, we can find that there are 0 ZIP codes are observed 116 times and 320 ZIP codes are observed fewer than 10 times.  
+The reason why some ZIP codes are observed rarely and others observed in each month may are:  
+1. Different population density and housing activity among variable locations;
+2. Missing data, the information of some areas is hard to collect.  
+
+## table showing the average rental price in each borough and year 
 ```{r}
+zip_df = 
+  Zip_Codes |> 
+  transmute(                      
+    zip = as.character(zip_code), 
+    borough = case_when(          
+      str_detect(county, "New York") ~ "Manhattan",
+      str_detect(county, "Kings") ~ "Brooklyn",
+      str_detect(county, "Queens") ~ "Queens",
+      str_detect(county, "Bronx") ~ "Bronx",
+      str_detect(county, "Richmond") ~ "Staten Island",
+      TRUE ~ "Other"
+    )
+  )
+
 rent_df =
   Zip_zori |>
   select(region_name, starts_with("x")) |>   
@@ -117,28 +154,58 @@ rent_df =
     rent = as.numeric(rent)
   ) |>
   select(zip, month, rent) |>
-  drop_na(rent)
+  drop_na(rent)|>
+  view()
 
-view(rent_df)
-```
+rent_with_borough = rent_df |>
+  left_join(zip_df, by = "zip")
 
-```{r}
-zip_df = 
-  Zip_Codes |> 
-  transmute(                      
-    zip = as.character(zip_code), 
-    borough = case_when(          
-      str_detect(county, "New York") ~ "Manhattan",
-      str_detect(county, "Kings") ~ "Brooklyn",
-      str_detect(county, "Queens") ~ "Queens",
-      str_detect(county, "Bronx") ~ "Bronx",
-      str_detect(county, "Richmond") ~ "Staten Island",
-      TRUE ~ "Other"
-    )
+borough_year =
+  rent_with_borough |>
+  filter(!is.na(borough)) |>
+  mutate(year = year(month)) |>
+  group_by(borough, year) |>
+  summarise(
+    mean_rent = mean(rent, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  arrange(borough, year)
+
+borough_year_table =
+  borough_year |>
+  mutate(mean_fmt = paste0("$", comma(round(mean_rent, 0)), " (n=", n, ")")) |>
+  select(borough, year, mean_fmt) |>
+  pivot_wider(
+    names_from = year,
+    values_from = mean_fmt
+  ) |>
+  arrange(borough) |>
+  gt() |>   
+  tab_header(
+    title = "Average Rental Price by Borough and Year",
+    subtitle = "Monthly average rental prices (2015–2024)"
+  ) |>
+  tab_options(
+    table.font.names = "Helvetica",
+    table.font.size = 12,
+    table.align = "center",
+    data_row.padding = px(5),
+    heading.align = "center"
+  ) |>
+  cols_label(
+    borough = "Borough"
   )
 
-```
+borough_year_table
 
+
+```
+From the table, we can find that:  
+
+
+
+## plot showing NYC Rental Prices within ZIP codes
 ```{r}
 rent_tidy = 
   left_join(rent_df, zip_df, by = "zip") |>
@@ -162,7 +229,6 @@ rent_summary |>
 
 ```
 
-make a plot
 ```{r}
 plot_trend = ggplot(rent_tidy, aes(x = Year, y = rent, group = zip)) +
   geom_line(aes(color = borough), alpha = 0.3, size = 0.6) +
@@ -181,7 +247,7 @@ plot_trend = ggplot(rent_tidy, aes(x = Year, y = rent, group = zip)) +
 plot_trend
 ```
 
-About 2023
+## About 2023
 ```{r}
 rent_2023 = rent_tidy |>
   filter(year(Year) == 2023)
@@ -209,6 +275,7 @@ zip_mean_2023 = rent_2023 |>
 zip_mean_2023
 ```
 
+## Combination of the two plots
 ```{r}
 combined_plot = plot_trend / zip_mean_2023 +
   plot_annotation(
@@ -226,12 +293,14 @@ ggsave("results/nyc_rental_combined_plot.png",
 
 #Problem 3
 ```{r}
-nhanes_covar = read_csv("nhanes_covar.csv",skip = 4) |> 
-  clean_names() |>
+nhanes_covar = 
+  read_csv("nhanes_covar.csv",skip = 4) |> 
+  janitor::clean_names() |>
   view()
 
-nhanes_accel = read_csv("nhanes_accel.csv") |> 
-  clean_names() |>
+nhanes_accel = 
+  read_csv("nhanes_accel.csv") |> 
+  janitor::clean_names() |>
   view()
 
 nhanes_full = 
