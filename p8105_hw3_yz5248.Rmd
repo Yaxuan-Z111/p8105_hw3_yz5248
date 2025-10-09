@@ -172,38 +172,19 @@ borough_year =
   ) |>
   arrange(borough, year)
 
-borough_year_table =
-  borough_year |>
-  mutate(mean_fmt = paste0("$", comma(round(mean_rent, 0)), " (n=", n, ")")) |>
-  select(borough, year, mean_fmt) |>
-  pivot_wider(
-    names_from = year,
-    values_from = mean_fmt
-  ) |>
-  arrange(borough) |>
-  gt() |>   
-  tab_header(
-    title = "Average Rental Price by Borough and Year",
-    subtitle = "Monthly average rental prices (2015–2024)"
-  ) |>
-  tab_options(
-    table.font.names = "Helvetica",
-    table.font.size = 12,
-    table.align = "center",
-    data_row.padding = px(5),
-    heading.align = "center"
-  ) |>
-  cols_label(
-    borough = "Borough"
+borough_year |> 
+  pivot_wider(names_from = year, values_from = mean_rent) |> 
+  mutate(across(-borough, ~ round(.x, 0))) |> 
+  kable(
+    caption = "Average Rental Price by Borough and Year (2015–2024)",
+    digits = 0
   )
-
-borough_year_table
 
 
 ```
-From the table, we can find that:  
-
-
+From the table, we can find that:    
+From 2015 to 2024, average rental prices across New York City’s boroughs showed a steady upward trend, with a slight decline around 2020–2021 likely due to the COVID-19 pandemic.   
+Manhattan consistently had the highest rents, followed by Brooklyn and Queens, while the Bronx and Staten Island remained more affordable but still experienced notable increases. After 2021, rental prices rebounded sharply—especially in Manhattan and Brooklyn—reflecting renewed housing demand. Overall, rents have risen citywide, and the price gap between Manhattan and the outer boroughs has continued to widen, highlighting growing housing affordability challenges in New York City.
 
 ## plot showing NYC Rental Prices within ZIP codes
 ```{r}
@@ -246,6 +227,7 @@ plot_trend = ggplot(rent_tidy, aes(x = Year, y = rent, group = zip)) +
   )
 plot_trend
 ```
+The plot illustrates the rental price trends in New York City's five boroughs—Bronx, Brooklyn, Manhattan, Queens, and Staten Island—from 2016 to 2024, based on Zillow ZORI data. Manhattan consistently has the highest rental prices, peaking around $7,000, and shows a general upward trend with some fluctuations. The Bronx and Brooklyn also exhibit steady increases, with Brooklyn displaying more variability. Queens has a moderate increase, while Staten Island shows significant volatility with a sharp rise, especially noticeable from 2022. Overall, all boroughs demonstrate an upward trend in rental prices, reflecting the growing demand and cost of living in NYC. 
 
 ## About 2023
 ```{r}
@@ -274,6 +256,7 @@ zip_mean_2023 = rent_2023 |>
   )
 zip_mean_2023
 ```
+From the boxplot, we can find that analysis of average monthly rents across New York City's boroughs for 2023 reveals significant disparities in rental prices. Manhattan leads with the highest median rent, approximately $4,000, and exhibits the greatest variability, with prices ranging up to $8,000. Brooklyn follows with a median around $3,000 and a broad spread, indicating diverse rental options. Queens has a more moderate median rent of about $2,500, while the Bronx and Staten Island both show lower medians around $2,000, with Staten Island having the narrowest spread, suggesting more uniform rental prices. This data underscores the stark differences in rental affordability and variety across NYC's boroughs, highlighting Manhattan's premium status and the more consistent, yet still diverse, rental markets in the outer boroughs.  
 
 ## Combination of the two plots
 ```{r}
@@ -345,6 +328,7 @@ edu_gender_table = nhanes_clean |>
   )
 edu_gender_table
 ```
+This table shows the distribution of education levels among men and women in the NHANES sample. Overall, the largest group is participants with more than a high school education (115 individuals), while the smallest group is those with less than high school education (55 individuals). The numbers of men and women are fairly similar within each category, though men slightly outnumber women among those with a high school equivalent education (35 vs. 23), whereas women slightly outnumber men among the highest education group (59 vs. 56). These results suggest that, in this sample, both men and women are generally well-educated, with a small gender difference across education levels.
 
 ## plot of the age distributions for men and women in each education category
 ```{r}
@@ -366,6 +350,7 @@ sex_education =
   )
 sex_education
 ```
+The boxplot provides a clear visual representation of the age distributions across different education levels and sexes within the NHANES Accelerometer Sample for individuals aged 21 and above. It reveals that the median age is approximately 50 years for all groups, indicating a predominantly middle-aged sample. The age distributions are similar for both males and females across all education levels, with no significant outliers observed. The interquartile ranges (IQRs) are also comparable, suggesting similar variability in age across different groups. This consistency in age distribution is important for ensuring the reliability and generalizability of health and lifestyle studies conducted using this sample.
 
 ## plot of total activities (y-axis) against age (x-axis)
 ```{r}
@@ -387,6 +372,7 @@ activity_plot =
   theme_minimal()
 activity_plot
 ```
+The plot depicting total daily activity against age, segmented by sex and education level, reveals several key insights. It shows a general decline in activity levels with increasing age across all education levels. Males tend to exhibit slightly higher activity levels than females, particularly in the groups with less than high school and high school equivalent education. Notably, individuals with more than a high school education display higher activity levels across most age groups compared to those with lower education levels. The high school equivalent group shows a bimodal trend with two distinct peaks, suggesting two periods of increased activity, likely around middle age. There is also considerable variability in activity levels within each age and education group, as indicated by the spread of data points around the trend lines. The presence of outliers, especially in older age groups, indicates that some individuals maintain high activity levels despite their age. Overall, this data underscores the influence of education and sex on daily physical activity, highlighting the importance of targeted public health initiatives to promote physical activity among different demographic groups.
 
 ## on activity over the course of the day
 ```{r}
@@ -419,4 +405,4 @@ daylong_plot =
   )
 daylong_plot
 ```
-
+The graph illustrates the 24-hour activity patterns, measured by accelerometer counts, across different education levels and sexes. All groups exhibit a bimodal distribution of activity, with two main peaks typically around morning and evening hours, suggesting two periods of increased activity. Males generally show slightly higher activity counts than females, especially in the group with less than a high school education. As education level increases, the activity levels between males and females become more similar, and the overall activity levels appear to be slightly higher, particularly in the group with more than a high school education. The smoother trends observed in the "more than high school" group suggest a more regular and structured daily routine compared to the other groups. This data underscores the influence of education and sex on daily physical activity patterns, which could be valuable for designing targeted health and lifestyle interventions.
