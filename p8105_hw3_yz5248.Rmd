@@ -292,6 +292,8 @@ ggsave("results/nyc_rental_combined_plot.png",
 
 
 #Problem 3
+
+## importing of data
 ```{r}
 nhanes_covar = 
   read_csv("nhanes_covar.csv",skip = 4) |> 
@@ -309,6 +311,7 @@ nhanes_full =
 
 ```
 
+## filtering the data 
 ```{r}
 nhanes_clean = nhanes_full |>
   filter(age >= 21) |>
@@ -326,6 +329,7 @@ nhanes_clean = nhanes_full |>
   )
 ```
 
+## table for the number of men and women in each education category
 ```{r}
 edu_gender_table = nhanes_clean |>
   count(education, sex) |>
@@ -342,6 +346,7 @@ edu_gender_table = nhanes_clean |>
 edu_gender_table
 ```
 
+## plot of the age distributions for men and women in each education category
 ```{r}
 sex_education = 
   ggplot(nhanes_clean, aes(x = education, y = age, fill = sex)) +
@@ -362,6 +367,7 @@ sex_education =
 sex_education
 ```
 
+## plot of total activities (y-axis) against age (x-axis)
 ```{r}
 total_activity = nhanes_clean |>
   mutate(total_activity = rowSums(select(cur_data(), starts_with("min")), na.rm = TRUE)) |>
@@ -382,6 +388,7 @@ activity_plot =
 activity_plot
 ```
 
+## on activity over the course of the day
 ```{r}
 nhanes_daylong = nhanes_clean |>
   pivot_longer(
