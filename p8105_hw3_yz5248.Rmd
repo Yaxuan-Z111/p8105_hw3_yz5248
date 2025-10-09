@@ -164,7 +164,7 @@ rent_summary |>
 
 make a plot
 ```{r}
-plot_trend <- ggplot(rent_tidy, aes(x = Year, y = rent, group = zip)) +
+plot_trend = ggplot(rent_tidy, aes(x = Year, y = rent, group = zip)) +
   geom_line(aes(color = borough), alpha = 0.3, size = 0.6) +
   facet_wrap(~ borough, scales = "free_y") +  
   labs(
@@ -183,11 +183,11 @@ plot_trend
 
 About 2023
 ```{r}
-rent_2023 <- rent_tidy |>
+rent_2023 = rent_tidy |>
   filter(year(Year) == 2023)
 
 
-zip_mean_2023 <- rent_2023 |>
+zip_mean_2023 = rent_2023 |>
   group_by(borough, zip) |>
   summarise(mean_rent = mean(rent, na.rm = TRUE), .groups = "drop")|>
   ggplot(aes(x = borough, y = mean_rent, fill = borough)) +
@@ -210,7 +210,7 @@ zip_mean_2023
 ```
 
 ```{r}
-combined_plot <- plot_trend / zip_mean_2023 +
+combined_plot = plot_trend / zip_mean_2023 +
   plot_annotation(
     title = "NYC Rental Prices: Trends and 2023 Distributions",
     theme = theme(plot.title = element_text(face = "bold", size = 18))
@@ -226,11 +226,121 @@ ggsave("results/nyc_rental_combined_plot.png",
 
 #Problem 3
 ```{r}
-nhanes_accel <- read_csv("nhanes_accel.csv") |> 
-  clean_names()
+nhanes_covar = read_csv("nhanes_covar.csv",skip = 4) |> 
+  clean_names() |>
+  view()
 
-nhanes_accel <- read_csv("nhanes_accel.csv") |> 
-  clean_names()
+nhanes_accel = read_csv("nhanes_accel.csv") |> 
+  clean_names() |>
+  view()
 
+nhanes_full = 
+  left_join(nhanes_covar, nhanes_accel, by = "seqn")|>
+  view()
+
+```
+
+```{r}
+nhanes_clean = nhanes_full |>
+  filter(age >= 21) |>
+  drop_na(sex, bmi, education) |> 
+  mutate(
+    sex = factor(sex, 
+                 levels = c(1, 2),
+                 labels = c("Male", "Female")),
+    education = factor(education,
+                       levels = c(1, 2, 3),
+                       labels = c("less than high school",
+                                  "High school equivalent",
+                                  "More than high school")
+                       ),
+  )
+```
+
+```{r}
+edu_gender_table = nhanes_clean |>
+  count(education, sex) |>
+  pivot_wider(
+    names_from = sex, 
+    values_from = n, 
+    values_fill = 0
+  ) |>
+  mutate(Total = Male + Female) |>
+  kable(
+    caption = "Number of Men and Women by Education Level (NHANES Sample)",
+    align = "lccc"
+  )
+edu_gender_table
+```
+
+```{r}
+sex_education = 
+  ggplot(nhanes_clean, aes(x = education, y = age, fill = sex)) +
+  geom_boxplot(width = 0.15, position = position_dodge(0.9), outlier.shape = NA, alpha = 0.5) +
+  labs(
+    title = "Age Distributions by Education Level and Sex",
+    subtitle = "NHANES Accelerometer Sample (Age ≥ 21)",
+    x = "Education Level",
+    y = "Age (years)",
+    fill = "Sex"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(angle = 20, hjust = 1, face = "bold"),
+    plot.title = element_text(face = "bold", size = 16),
+    legend.position = "top"
+  )
+sex_education
+```
+
+```{r}
+total_activity = nhanes_clean |>
+  mutate(total_activity = rowSums(select(cur_data(), starts_with("min")), na.rm = TRUE)) |>
+  select(seqn, sex, age, education, total_activity) |>
+  view()
+
+activity_plot = 
+  ggplot(total_activity, aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", se = FALSE) +
+  facet_wrap(~education) +
+  labs(
+    x = "Age",
+    y = "Total Activity (sum of minute-level counts)",
+    title = "Total Daily Activity vs Age by Sex and Education Level"
+  ) +
+  theme_minimal()
+activity_plot
+```
+
+```{r}
+nhanes_daylong = nhanes_clean |>
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "minute",
+    values_to = "activity"
+  ) |>
+  mutate(
+    minute = as.numeric(gsub("min", "", minute)),   
+    hour = minute / 60                             
+  )
+nhanes_daylong
+
+daylong_plot = 
+  ggplot(nhanes_daylong, aes(x = hour, y = activity, color = sex)) +
+  geom_smooth(se = FALSE, span = 0.2) +   
+  facet_wrap(~education) +
+  labs(
+    title = "24-hour Activity Patterns by Education Level and Sex",
+    x = "Hour of Day",
+    y = "Activity Count (Accelerometer)",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+daylong_plot
 ```
 
